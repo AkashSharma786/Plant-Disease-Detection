@@ -13,4 +13,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 EXPOSE ${PORT}
-CMD ["gunicorn", "-w", "1", "-b", "0.0.0.0:$PORT", "app:app"]
+CMD ["python", "app.py"]
