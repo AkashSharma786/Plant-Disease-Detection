@@ -162,9 +162,7 @@ def predict():
             'predicted_class': predicted_class,
             'confidence': confidence,
             'cure': cure,
-            'all_predictions': {
-                CLASS_NAMES[i]: float(probs[i]) for i in range(len(CLASS_NAMES))
-            }
+            
         }), 200
     
     except Exception as e:
