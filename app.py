@@ -5,29 +5,44 @@ import torch
 from torchvision import models, transforms
 import torch.nn as nn
 import io
+import logging
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Load model
-model = models.mobilenet_v2(pretrained=True)
+# Global model variable - lazy loaded
+model = None
+tf = None
 
-for p in model.features.parameters():
-    p.requires_grad = False
+def load_model():
+    """Load model on first use (lazy loading)"""
+    global model, tf
+    if model is not None:
+        return
+    
+    logger.info("Loading PyTorch model...")
+    model = models.mobilenet_v2(pretrained=True)
 
-model.classifier[1] = nn.Sequential(
-    nn.Dropout(0.2),
-    nn.Linear(model.classifier[1].in_features, 38)
-)
-model.load_state_dict(torch.load('mobilenetv2_plant.pth', map_location=torch.device('cpu')))
-model.eval()
+    for p in model.features.parameters():
+        p.requires_grad = False
 
-# Image preprocessing
-tf = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize([0.485, 0.456, 0.406],
-                         [0.229, 0.224, 0.225])
-])
+    model.classifier[1] = nn.Sequential(
+        nn.Dropout(0.2),
+        nn.Linear(model.classifier[1].in_features, 38)
+    )
+    model.load_state_dict(torch.load('mobilenetv2_plant.pth', map_location=torch.device('cpu')))
+    model.eval()
+
+    # Image preprocessing
+    tf = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize([0.485, 0.456, 0.406],
+                             [0.229, 0.224, 0.225])
+    ])
+    logger.info("Model loaded successfully")
 
 CLASS_NAMES = ["Apple___Apple_scab",
                "Apple___Black_rot",
@@ -116,6 +131,9 @@ def predict():
     Accepts an image file and returns prediction with confidence
     """
     try:
+        # Load model on first request (lazy loading)
+        load_model()
+        
         # Check if image is in request
         if 'image' not in request.files:
             return jsonify({'error': 'No image provided'}), 400
