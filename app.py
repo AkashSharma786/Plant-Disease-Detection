@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+import os
 from PIL import Image
 import torch
 from torchvision import models, transforms
